@@ -39,19 +39,30 @@ def get_youtube_transcript(video_url):
     else:
         raise ValueError("Invalid YouTube URL ID pattern.")
 
-    print(f"Fetching transcript for video ID: {video_id} using cookies...")
+    print(f"Fetching transcript for video ID: {video_id}...")
     
-    # NEW CODE: We tell the API to use the secret cookies.txt file to bypass the block
     try:
-        # Check if cookies.txt exists (it will on Render, but might not on your local machine)
+        # The official, robust way to pass cookies in the library
         if os.path.exists("cookies.txt"):
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, cookies="cookies.txt")
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, cookies="cookies.txt")
         else:
-            # Fallback for local testing without cookies
-            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
             
-        return " ".join([segment['text'] for segment in transcript_list])
-        
+        # Dynamically grab the first available transcript (handles any language automatically)
+        data = None
+        for transcript in transcript_list:
+            data = transcript.fetch()
+            break
+            
+        if not data:
+            raise ValueError("No transcripts found for this video.")
+            
+        # Safely handle both dictionary and object formats depending on your exact library version
+        try:
+            return " ".join([segment['text'] for segment in data])
+        except TypeError:
+            return " ".join([segment.text for segment in data])
+            
     except Exception as e:
         raise ValueError(f"Transcript extraction failed. Error: {str(e)}")
 
