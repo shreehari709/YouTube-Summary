@@ -39,9 +39,21 @@ def get_youtube_transcript(video_url):
     else:
         raise ValueError("Invalid YouTube URL ID pattern.")
 
-    ytt_api = YouTubeTranscriptApi()
-    transcript_list = ytt_api.fetch(video_id)
-    return " ".join([segment.text for segment in transcript_list])
+    print(f"Fetching transcript for video ID: {video_id} using cookies...")
+    
+    # NEW CODE: We tell the API to use the secret cookies.txt file to bypass the block
+    try:
+        # Check if cookies.txt exists (it will on Render, but might not on your local machine)
+        if os.path.exists("cookies.txt"):
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id, cookies="cookies.txt")
+        else:
+            # Fallback for local testing without cookies
+            transcript_list = YouTubeTranscriptApi.get_transcript(video_id)
+            
+        return " ".join([segment['text'] for segment in transcript_list])
+        
+    except Exception as e:
+        raise ValueError(f"Transcript extraction failed. Error: {str(e)}")
 
 @app.post("/api/generate-notes")
 async def generate_notes_endpoint(request: VideoRequest):
