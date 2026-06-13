@@ -115,12 +115,11 @@
             generateBtn.disabled = true;
 
             try {
-               // Inside index.html -> processVideo()
-const response = await fetch('/api/generate-notes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: urlInput })
-});
+                const response = await fetch('http://127.0.0.1:8000/api/generate-notes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: urlInput })
+                });
 
                 const data = await response.json();
 
@@ -157,7 +156,7 @@ const response = await fetch('/api/generate-notes', {
             
             const temporaryLink = document.createElement('a');
             temporaryLink.href = url;
-            temporaryLink.download = 'AI_Study_Notes.doc';
+            temporaryLink.download = 'NOTES.doc';
             
             document.body.appendChild(temporaryLink);
             temporaryLink.click();
