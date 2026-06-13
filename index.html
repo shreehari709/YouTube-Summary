@@ -115,11 +115,12 @@
             generateBtn.disabled = true;
 
             try {
-                const response = await fetch('/api/index', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ url: urlInput })
-                });
+               // Inside index.html -> processVideo()
+const response = await fetch('/api/generate-notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: urlInput })
+});
 
                 const data = await response.json();
 

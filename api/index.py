@@ -1,14 +1,34 @@
 import os
 import re
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from google import genai
 from youtube_transcript_api import YouTubeTranscriptApi
 
 app = FastAPI()
 
+# Allow frontend to communicate with backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 class VideoRequest(BaseModel):
     url: str
+
+# Render needs this route to serve your web page!
+@app.get("/", response_class=HTMLResponse)
+async def serve_frontend():
+    try:
+        with open("index.html", "r", encoding="utf-8") as file:
+            return file.read()
+    except FileNotFoundError:
+        return "<h3>Error: index.html file not found.</h3>"
 
 def get_youtube_transcript(video_url):
     regex_pattern = r"(?:v=|\/shorts\/|\/embed\/|\/v\/|youtu\.be\/|\/watch\?v=|\&v=)([^#\&\?]*)"
@@ -22,17 +42,16 @@ def get_youtube_transcript(video_url):
     transcript_list = ytt_api.fetch(video_id)
     return " ".join([segment.text for segment in transcript_list])
 
-@app.post("/api/index")
+# The main API endpoint
+@app.post("/api/generate-notes")
 async def generate_notes_endpoint(request: VideoRequest):
- 
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise HTTPException(status_code=500, detail="API Key missing in Vercel settings.")
+        raise HTTPException(status_code=500, detail="API Key missing in Render Environment Variables.")
     
     try:
         transcript_text = get_youtube_transcript(request.url)
         
-     
         client = genai.Client(api_key=api_key)
         system_instruction = """
         You are an elite technical summary assistant. I will provide a transcript from a YouTube video. 
