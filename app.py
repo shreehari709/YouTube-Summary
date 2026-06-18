@@ -1,5 +1,7 @@
 import os
 import re
+import requests
+import http.cookiejar
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -42,26 +44,23 @@ def get_youtube_transcript(video_url):
     print(f"Fetching transcript for video ID: {video_id}...")
     
     try:
-        # The official, robust way to pass cookies in the library
+        session = requests.Session()
+        
+        # Manually load the cookies to bypass the library's disabled built-in loader
         if os.path.exists("cookies.txt"):
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, cookies="cookies.txt")
-        else:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            cookie_jar = http.cookiejar.MozillaCookieJar("cookies.txt")
+            cookie_jar.load(ignore_discard=True, ignore_expires=True)
+            session.cookies.update(cookie_jar)
             
-        # Dynamically grab the first available transcript (handles any language automatically)
-        data = None
-        for transcript in transcript_list:
-            data = transcript.fetch()
-            break
-            
-        if not data:
-            raise ValueError("No transcripts found for this video.")
-            
-        # Safely handle both dictionary and object formats depending on your exact library version
+        # NEW SYNTAX: Create the instance with the custom session, then call .fetch()
+        ytt_api = YouTubeTranscriptApi(http_client=session)
+        transcript_data = ytt_api.fetch(video_id)
+        
+        # Safely handle the response whether it returns objects or dictionaries
         try:
-            return " ".join([segment['text'] for segment in data])
-        except TypeError:
-            return " ".join([segment.text for segment in data])
+            return " ".join([segment.text for segment in transcript_data])
+        except AttributeError:
+            return " ".join([segment['text'] for segment in transcript_data])
             
     except Exception as e:
         raise ValueError(f"Transcript extraction failed. Error: {str(e)}")
